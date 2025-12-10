@@ -7,11 +7,11 @@ import {
   RotateCcw,
   Upload,
 } from 'lucide-react'; // Adicionado Upload
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import { ZodError } from 'zod';
+import { ResumeDocument } from '@/components/ResumeDocument';
 import ResumeEditor from '@/components/ResumeEditor';
 import ResumePreview from '@/components/ResumePreview';
-import { resumeSchema } from '@/schemas';
 import { initialResumeState, type ResumeData } from '@/types';
 
 export default function ATSBuilder() {
@@ -21,6 +21,21 @@ export default function ATSBuilder() {
 
   // Referência para o input de ficheiro oculto
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const PDFDownloadLink = dynamic(
+    () => import('@react-pdf/renderer').then(mod => mod.PDFDownloadLink),
+    {
+      ssr: false,
+      loading: () => (
+        <button
+          type='button'
+          className='bg-gray-400 text-white px-4 py-2 rounded flex items-center gap-2'
+        >
+          Carregando...
+        </button>
+      ),
+    }
+  );
 
   // --- EFEITOS ---
   useEffect(() => {
@@ -43,20 +58,6 @@ export default function ATSBuilder() {
   }, [resumeData, isLoaded]);
 
   // --- AÇÕES ---
-
-  const handlePrint = () => {
-    try {
-      resumeSchema.parse(resumeData);
-      setErrors({});
-      window.print();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const formattedErrors = error.flatten().fieldErrors;
-        setErrors(formattedErrors as any);
-        alert('Atenção: Existem campos obrigatórios vazios ou inválidos.');
-      }
-    }
-  };
 
   const handleReset = () => {
     if (confirm('Tem a certeza? Isto apagará todos os dados atuais.')) {
@@ -168,6 +169,7 @@ export default function ATSBuilder() {
 
           {/* Botão Importar */}
           <button
+            type='button'
             onClick={handleImportClick}
             className='text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-2 rounded flex items-center gap-2 transition-colors text-sm'
             title='Carregar backup (JSON)'
@@ -178,6 +180,7 @@ export default function ATSBuilder() {
 
           {/* Botão Exportar */}
           <button
+            type='button'
             onClick={handleExportJson}
             className='text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-2 rounded flex items-center gap-2 transition-colors text-sm'
             title='Baixar backup (JSON)'
@@ -187,6 +190,7 @@ export default function ATSBuilder() {
           </button>
 
           <button
+            type='button'
             onClick={handleReset}
             className='text-slate-400 hover:text-white px-3 py-2 rounded flex items-center gap-2 transition-colors text-sm hover:bg-slate-800'
             title='Limpar tudo'
@@ -195,14 +199,21 @@ export default function ATSBuilder() {
             <span className='hidden lg:inline'>Limpar</span>
           </button>
 
-          <button
-            onClick={handlePrint}
-            className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-all shadow hover:shadow-blue-500/20 font-medium text-sm sm:text-base'
-          >
-            <Printer size={18} />
-            <span className='hidden sm:inline'>Salvar PDF</span>
-            <span className='sm:hidden'>PDF</span>
-          </button>
+          {isLoaded && (
+            <PDFDownloadLink
+              document={<ResumeDocument data={resumeData} />}
+              fileName={`curriculo-${resumeData.fullName.replace(/\s+/g, '_').toLowerCase()}.pdf`}
+              className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-all shadow font-medium text-sm sm:text-base decoration-0 no-underline'
+            >
+              {/* O componente passa uma prop 'loading' para sabermos se está gerando */}
+              {({ loading }) => (
+                <>
+                  <Printer size={18} />
+                  {loading ? 'Gerando...' : 'Salvar PDF'}
+                </>
+              )}
+            </PDFDownloadLink>
+          )}
         </div>
       </nav>
 
