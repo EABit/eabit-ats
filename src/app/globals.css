@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Garante que o background de impressão seja limpo e force o tamanho A4 */
+  @media print {
+    @page {
+      margin: 0;
+      size: auto;
+    }
+    body {
+      background: white;
+    }
+    /* Esconde elementos que não são o currículo se eles não tiverem a classe print:block */
+    /* Nota: O Tailwind já cuida disso com as classes print:hidden usadas acima */
+  }
+}
